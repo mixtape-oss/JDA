@@ -26,6 +26,8 @@ public class ConnectionRequest
     protected long nextAttemptEpoch;
     protected ConnectionStage stage;
     protected long channelId;
+    protected boolean selfMuted = false;
+    protected boolean selfDeafened = false;
 
     public ConnectionRequest(Guild guild)
     {
@@ -44,6 +46,26 @@ public class ConnectionRequest
     public void setStage(ConnectionStage stage)
     {
         this.stage = stage;
+    }
+
+    public void setSelfDeafened(boolean selfDeafened)
+    {
+        this.selfDeafened = selfDeafened;
+    }
+
+    public void setSelfMuted(boolean selfMuted)
+    {
+        this.selfMuted = selfMuted;
+    }
+
+    public boolean isSelfMuted()
+    {
+        return selfMuted;
+    }
+
+    public boolean isSelfDeafened()
+    {
+        return selfDeafened;
     }
 
     public void setChannel(VoiceChannel channel)

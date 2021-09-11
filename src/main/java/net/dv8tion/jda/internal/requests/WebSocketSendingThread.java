@@ -20,7 +20,6 @@ import gnu.trove.map.TLongObjectMap;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.GuildVoiceState;
-import net.dv8tion.jda.api.managers.AudioManager;
 import net.dv8tion.jda.api.utils.data.DataObject;
 import net.dv8tion.jda.internal.JDAImpl;
 import net.dv8tion.jda.internal.audio.ConnectionRequest;
@@ -208,7 +207,6 @@ class WebSocketSendingThread implements Runnable
             return;
         }
         ConnectionStage stage = audioRequest.getStage();
-        AudioManager audioManager = guild.getAudioManager();
         DataObject packet;
         switch (stage)
         {
@@ -218,7 +216,7 @@ class WebSocketSendingThread implements Runnable
                 break;
             default:
             case CONNECT:
-                packet = newVoiceOpen(audioManager, channelId, guild.getIdLong());
+                packet = newVoiceOpen(channelId, guild.getIdLong(), audioRequest.isSelfMuted(), audioRequest.isSelfDeafened());
         }
         LOG.debug("Sending voice request {}", packet);
         if (send(packet))
@@ -265,14 +263,14 @@ class WebSocketSendingThread implements Runnable
                 .put("self_deaf", false));
     }
 
-    protected DataObject newVoiceOpen(AudioManager manager, long channel, long guild)
+    protected DataObject newVoiceOpen(long channel, long guild, boolean muted, boolean deafened)
     {
         return DataObject.empty()
             .put("op", WebSocketCode.VOICE_STATE)
             .put("d", DataObject.empty()
                 .put("guild_id", guild)
                 .put("channel_id", channel)
-                .put("self_mute", manager.isSelfMuted())
-                .put("self_deaf", manager.isSelfDeafened()));
+                .put("self_mute", muted)
+                .put("self_deaf", deafened));
     }
 }

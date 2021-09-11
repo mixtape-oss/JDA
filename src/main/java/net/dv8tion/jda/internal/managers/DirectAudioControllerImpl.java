@@ -16,22 +16,53 @@
 
 package net.dv8tion.jda.internal.managers;
 
+import gnu.trove.map.TLongObjectMap;
+import net.dv8tion.jda.api.audio.AudioConnection;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.VoiceChannel;
 import net.dv8tion.jda.api.managers.DirectAudioController;
+import net.dv8tion.jda.api.utils.cache.CacheView;
 import net.dv8tion.jda.internal.JDAImpl;
 import net.dv8tion.jda.internal.requests.WebSocketClient;
 import net.dv8tion.jda.internal.utils.Checks;
+import net.dv8tion.jda.internal.utils.UnlockHook;
+import net.dv8tion.jda.internal.utils.cache.AbstractCacheView;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import javax.annotation.Nonnull;
 
 public class DirectAudioControllerImpl implements DirectAudioController
 {
     private final JDAImpl api;
+    private final AbstractCacheView<AudioConnection> audioConnections = new CacheView.SimpleCacheView<>(AudioConnection.class, m -> m.getGuild().getName());
 
     public DirectAudioControllerImpl(JDAImpl api)
     {
         this.api = api;
+    }
+
+    @Override
+    public @NotNull AbstractCacheView<AudioConnection> getAudioConnectionCache()
+    {
+        return audioConnections;
+    }
+
+    @Nullable
+    @Override
+    public AudioConnection getAudioConnection(long guildId)
+    {
+        return null;
+    }
+
+    public void setAudioConnection(long guildId, AudioConnection connection) {
+        AbstractCacheView<AudioConnection> managerView = getJDA().getDirectAudioController().getAudioConnectionCache();
+        try (UnlockHook hook = managerView.writeLock())
+        {
+            TLongObjectMap<AudioConnection> managerMap = managerView.getMap();
+            managerMap.put(guildId, connection);
+            hook.close();
+        }
     }
 
     @Nonnull
@@ -42,12 +73,12 @@ public class DirectAudioControllerImpl implements DirectAudioController
     }
 
     @Override
-    public void connect(@Nonnull VoiceChannel channel)
+    public void connect(@Nonnull VoiceChannel channel, boolean selfMute, boolean selfDeaf)
     {
         Checks.notNull(channel, "Voice Channel");
         JDAImpl jda = getJDA();
         WebSocketClient client = jda.getClient();
-        client.queueAudioConnect(channel);
+        client.queueAudioConnect(channel, selfMute, selfDeaf);
     }
 
     @Override

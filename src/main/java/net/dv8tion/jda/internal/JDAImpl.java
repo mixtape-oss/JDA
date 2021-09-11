@@ -22,8 +22,6 @@ import net.dv8tion.jda.api.AccountType;
 import net.dv8tion.jda.api.GatewayEncoding;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.Permission;
-import net.dv8tion.jda.api.audio.factory.DefaultSendFactory;
-import net.dv8tion.jda.api.audio.factory.IAudioSendFactory;
 import net.dv8tion.jda.api.audio.hooks.ConnectionStatus;
 import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.events.GatewayPingEvent;
@@ -36,7 +34,6 @@ import net.dv8tion.jda.api.hooks.InterfacedEventManager;
 import net.dv8tion.jda.api.hooks.VoiceDispatchInterceptor;
 import net.dv8tion.jda.api.interactions.commands.Command;
 import net.dv8tion.jda.api.interactions.commands.build.CommandData;
-import net.dv8tion.jda.api.managers.AudioManager;
 import net.dv8tion.jda.api.managers.Presence;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 import net.dv8tion.jda.api.requests.Request;
@@ -57,7 +54,6 @@ import net.dv8tion.jda.internal.entities.UserImpl;
 import net.dv8tion.jda.internal.handle.EventCache;
 import net.dv8tion.jda.internal.handle.GuildSetupController;
 import net.dv8tion.jda.internal.hooks.EventManagerProxy;
-import net.dv8tion.jda.internal.managers.AudioManagerImpl;
 import net.dv8tion.jda.internal.managers.DirectAudioControllerImpl;
 import net.dv8tion.jda.internal.managers.PresenceImpl;
 import net.dv8tion.jda.internal.requests.*;
@@ -69,7 +65,6 @@ import net.dv8tion.jda.internal.utils.Checks;
 import net.dv8tion.jda.internal.utils.Helpers;
 import net.dv8tion.jda.internal.utils.JDALogger;
 import net.dv8tion.jda.internal.utils.UnlockHook;
-import net.dv8tion.jda.internal.utils.cache.AbstractCacheView;
 import net.dv8tion.jda.internal.utils.cache.SnowflakeCacheViewImpl;
 import net.dv8tion.jda.internal.utils.config.AuthorizationConfig;
 import net.dv8tion.jda.internal.utils.config.MetaConfig;
@@ -101,8 +96,6 @@ public class JDAImpl implements JDA
     protected final SnowflakeCacheViewImpl<PrivateChannel> privateChannelCache = new SnowflakeCacheViewImpl<>(PrivateChannel.class, MessageChannel::getName);
     protected final LinkedList<Long> privateChannelLRU = new LinkedList<>();
 
-    protected final AbstractCacheView<AudioManager> audioManagers = new CacheView.SimpleCacheView<>(AudioManager.class, m -> m.getGuild().getName());
-
     protected final PresenceImpl presence;
     protected final Thread shutdownHook;
     protected final EntityBuilder entityBuilder = new EntityBuilder(this);
@@ -119,7 +112,6 @@ public class JDAImpl implements JDA
 
     protected WebSocketClient client;
     protected Requester requester;
-    protected IAudioSendFactory audioSendFactory = new DefaultSendFactory();
     protected Status status = Status.INITIALIZING;
     protected SelfUser selfUser;
     protected ShardInfo shardInfo;
@@ -574,13 +566,6 @@ public class JDAImpl implements JDA
 
     @Nonnull
     @Override
-    public CacheView<AudioManager> getAudioManagerCache()
-    {
-        return audioManagers;
-    }
-
-    @Nonnull
-    @Override
     public SnowflakeCacheView<Guild> getGuildCache()
     {
         return guildCache;
@@ -736,7 +721,6 @@ public class JDAImpl implements JDA
         if (status == Status.SHUTDOWN)
             return;
         //so we can shutdown from WebSocketClient properly
-        closeAudioConnections();
         guildSetupController.close();
 
         // stop accepting new requests
@@ -761,14 +745,6 @@ public class JDAImpl implements JDA
         // Stop all request processing
         requester.shutdown();
         threadConfig.shutdownRequester();
-    }
-
-    private void closeAudioConnections()
-    {
-        getAudioManagerCache()
-            .stream()
-            .map(AudioManagerImpl.class::cast)
-            .forEach(m -> m.closeAudioConnection(ConnectionStatus.SHUTTING_DOWN));
     }
 
     @Override
@@ -1025,17 +1001,6 @@ public class JDAImpl implements JDA
         return entityBuilder;
     }
 
-    public IAudioSendFactory getAudioSendFactory()
-    {
-        return audioSendFactory;
-    }
-
-    public void setAudioSendFactory(IAudioSendFactory factory)
-    {
-        Checks.notNull(factory, "Provided IAudioSendFactory");
-        this.audioSendFactory = factory;
-    }
-
     public void setGatewayPing(long ping)
     {
         long oldPing = this.gatewayPing;
@@ -1091,11 +1056,6 @@ public class JDAImpl implements JDA
     public SnowflakeCacheViewImpl<PrivateChannel> getPrivateChannelsView()
     {
         return privateChannelCache;
-    }
-
-    public AbstractCacheView<AudioManager> getAudioManagersView()
-    {
-        return audioManagers;
     }
 
     public void setSelfUser(SelfUser selfUser)

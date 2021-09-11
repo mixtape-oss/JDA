@@ -16,11 +16,9 @@
 
 package net.dv8tion.jda.api;
 
+import net.dv8tion.jda.api.audio.AudioConnection;
 import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.hooks.IEventManager;
-import net.dv8tion.jda.api.interactions.commands.Command;
-import net.dv8tion.jda.api.interactions.commands.build.CommandData;
-import net.dv8tion.jda.api.managers.AudioManager;
 import net.dv8tion.jda.api.managers.DirectAudioController;
 import net.dv8tion.jda.api.managers.Presence;
 import net.dv8tion.jda.api.requests.GatewayIntent;
@@ -430,9 +428,6 @@ public interface JDA extends ICommandHolder
      * Direct access to audio (dis-)connect requests.
      * <br>This should not be used when normal audio operation is desired.
      *
-     * <p>The correct way to open and close an audio connection is through the {@link Guild Guild's}
-     * {@link AudioManager}.
-     *
      * @throws IllegalStateException
      *         If {@link GatewayIntent#GUILD_VOICE_STATES} is disabled
      *
@@ -541,30 +536,6 @@ public interface JDA extends ICommandHolder
     @Nonnull
     @CheckReturnValue
     RestAction<Void> createGuildFromTemplate(@Nonnull String code, @Nonnull String name, @Nullable Icon icon);
-
-    /**
-     * {@link net.dv8tion.jda.api.utils.cache.CacheView CacheView} of
-     * all cached {@link net.dv8tion.jda.api.managers.AudioManager AudioManagers} created for this JDA instance.
-     * <br>AudioManagers are created when first retrieved via {@link net.dv8tion.jda.api.entities.Guild#getAudioManager() Guild.getAudioManager()}.
-     * <u>Using this will perform better than calling {@code Guild.getAudioManager()} iteratively as that would cause many useless audio managers to be created!</u>
-     *
-     * <p>AudioManagers are cross-session persistent!
-     *
-     * @return {@link net.dv8tion.jda.api.utils.cache.CacheView CacheView}
-     */
-    @Nonnull
-    CacheView<AudioManager> getAudioManagerCache();
-
-    /**
-     * Immutable list of all created {@link net.dv8tion.jda.api.managers.AudioManager AudioManagers} for this JDA instance!
-     *
-     * @return Immutable list of all created AudioManager instances
-     */
-    @Nonnull
-    default List<AudioManager> getAudioManagers()
-    {
-        return getAudioManagerCache().asList();
-    }
 
     /**
      * {@link net.dv8tion.jda.api.utils.cache.SnowflakeCacheView SnowflakeCacheView} of

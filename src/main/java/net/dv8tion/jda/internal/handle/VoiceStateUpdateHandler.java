@@ -16,6 +16,7 @@
 
 package net.dv8tion.jda.internal.handle;
 
+import net.dv8tion.jda.api.audio.AudioConnection;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.events.guild.voice.*;
 import net.dv8tion.jda.api.hooks.VoiceDispatchInterceptor;
@@ -25,7 +26,6 @@ import net.dv8tion.jda.internal.entities.GuildImpl;
 import net.dv8tion.jda.internal.entities.GuildVoiceStateImpl;
 import net.dv8tion.jda.internal.entities.MemberImpl;
 import net.dv8tion.jda.internal.entities.VoiceChannelImpl;
-import net.dv8tion.jda.internal.managers.AudioManagerImpl;
 import net.dv8tion.jda.internal.requests.WebSocketClient;
 
 import java.time.OffsetDateTime;
@@ -174,9 +174,9 @@ public class VoiceStateUpdateHandler extends SocketHandler
                 channel.getConnectedMembersMap().put(userId, member);
                 getJDA().getEntityBuilder().updateMemberCache(member);
                 getJDA().handleEvent(
-                    new GuildVoiceJoinEvent(
-                        getJDA(), responseNumber,
-                        member));
+                        new GuildVoiceJoinEvent(
+                                getJDA(), responseNumber,
+                                member));
             }
             else if (channel == null)
             {
@@ -185,37 +185,28 @@ public class VoiceStateUpdateHandler extends SocketHandler
                     getJDA().getDirectAudioController().update(guild, null);
                 getJDA().getEntityBuilder().updateMemberCache(member, memberJson.isNull("joined_at"));
                 getJDA().handleEvent(
-                    new GuildVoiceLeaveEvent(
-                        getJDA(), responseNumber,
-                        member, oldChannel));
+                        new GuildVoiceLeaveEvent(
+                                getJDA(), responseNumber,
+                                member, oldChannel));
             }
             else
             {
-                AudioManagerImpl mng = (AudioManagerImpl) getJDA().getAudioManagersView().get(guildId);
+                AudioConnection mng = getJDA().getDirectAudioController().getAudioConnection(guildId);
                 //If the currently connected account is the one that is being moved
                 if (isSelf && mng != null && voiceInterceptor == null)
                 {
                     //And this instance of JDA is connected or attempting to connect,
                     // then change the channel we expect to be connected to.
-                    if (mng.isConnected())
-                        mng.setConnectedChannel(channel);
-
-                    //If we have connected (VOICE_SERVER_UPDATE received and AudioConnection created (actual connection might still be setting up)),
-                    // then we need to stop sending audioOpen/Move requests through the MainWS if the channel
-                    // we have just joined / moved to is the same as the currently queued audioRequest
-                    // (handled by updateAudioConnection)
-                    if (mng.isConnected())
-                        getJDA().getDirectAudioController().update(guild, channel);
-                    //If we are not already connected this will be removed by VOICE_SERVER_UPDATE
+                    mng.setChannelId(channel.getIdLong());
                 }
 
                 channel.getConnectedMembersMap().put(userId, member);
                 oldChannel.getConnectedMembersMap().remove(userId);
                 getJDA().getEntityBuilder().updateMemberCache(member);
                 getJDA().handleEvent(
-                    new GuildVoiceMoveEvent(
-                        getJDA(), responseNumber,
-                        member, oldChannel));
+                        new GuildVoiceMoveEvent(
+                                getJDA(), responseNumber,
+                                member, oldChannel));
             }
         }
 

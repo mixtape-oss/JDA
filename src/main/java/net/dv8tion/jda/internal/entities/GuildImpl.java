@@ -27,7 +27,6 @@ import net.dv8tion.jda.api.exceptions.PermissionException;
 import net.dv8tion.jda.api.interactions.commands.Command;
 import net.dv8tion.jda.api.interactions.commands.build.CommandData;
 import net.dv8tion.jda.api.interactions.commands.privileges.CommandPrivilege;
-import net.dv8tion.jda.api.managers.AudioManager;
 import net.dv8tion.jda.api.managers.GuildManager;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 import net.dv8tion.jda.api.requests.RestAction;
@@ -41,7 +40,6 @@ import net.dv8tion.jda.api.utils.concurrent.Task;
 import net.dv8tion.jda.api.utils.data.DataArray;
 import net.dv8tion.jda.api.utils.data.DataObject;
 import net.dv8tion.jda.internal.JDAImpl;
-import net.dv8tion.jda.internal.managers.AudioManagerImpl;
 import net.dv8tion.jda.internal.managers.GuildManagerImpl;
 import net.dv8tion.jda.internal.requests.*;
 import net.dv8tion.jda.internal.requests.restaction.*;
@@ -859,33 +857,6 @@ public class GuildImpl implements Guild
 
         Route.CompiledRoute route = Route.Guilds.DELETE_GUILD.compile(getId());
         return new RestActionImpl<>(getJDA(), route, mfaBody);
-    }
-
-    @Nonnull
-    @Override
-    public AudioManager getAudioManager()
-    {
-        if (!getJDA().isIntent(GatewayIntent.GUILD_VOICE_STATES))
-            throw new IllegalStateException("Cannot use audio features with disabled GUILD_VOICE_STATES intent!");
-        final AbstractCacheView<AudioManager> managerMap = getJDA().getAudioManagersView();
-        AudioManager mng = managerMap.get(id);
-        if (mng == null)
-        {
-            // No previous manager found -> create one
-            try (UnlockHook hook = managerMap.writeLock())
-            {
-                GuildImpl cachedGuild = (GuildImpl) getJDA().getGuildById(id);
-                if (cachedGuild == null)
-                    throw new IllegalStateException("Cannot get an AudioManager instance on an uncached Guild");
-                mng = managerMap.get(id);
-                if (mng == null)
-                {
-                    mng = new AudioManagerImpl(cachedGuild);
-                    managerMap.getMap().put(id, mng);
-                }
-            }
-        }
-        return mng;
     }
 
     @Nonnull

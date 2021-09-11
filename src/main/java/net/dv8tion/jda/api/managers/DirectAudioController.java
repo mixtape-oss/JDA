@@ -17,19 +17,53 @@
 package net.dv8tion.jda.api.managers;
 
 import net.dv8tion.jda.api.JDA;
+import net.dv8tion.jda.api.audio.AudioConnection;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.VoiceChannel;
+import net.dv8tion.jda.api.utils.cache.CacheView;
+import net.dv8tion.jda.internal.utils.cache.AbstractCacheView;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import java.util.List;
 
 /**
  * Direct access to internal gateway communication.
  * <br>This should only be used if a {@link net.dv8tion.jda.api.hooks.VoiceDispatchInterceptor VoiceDispatchInterceptor} has been provided.
- *
- * <p>For normal operation use {@link Guild#getAudioManager()} instead.
  */
 public interface DirectAudioController
 {
+
+    /**
+     * {@link net.dv8tion.jda.api.utils.cache.CacheView CacheView} of
+     * all cached {@link net.dv8tion.jda.api.audio.AudioConnection} created for this JDA instance.
+     *
+     * <p>AudioManagers are cross-session persistent!
+     *
+     * @return {@link net.dv8tion.jda.api.utils.cache.CacheView CacheView}
+     */
+    @Nonnull
+    AbstractCacheView<AudioConnection> getAudioConnectionCache();
+
+    /**
+     * Immutable list of all created {@link net.dv8tion.jda.api.audio.AudioConnection AudioConnections} for this JDA instance!
+     *
+     * @return Immutable list of all created AudioManager instances
+     */
+    @Nonnull
+    default List<AudioConnection> getAudioManagers()
+    {
+        return getAudioConnectionCache().asList();
+    }
+
+    /**
+     *
+     * @param guildId
+     * @return
+     */
+    @Nullable
+    AudioConnection getAudioConnection(long guildId);
+
     /**
      * The associated JDA instance
      *
@@ -43,10 +77,14 @@ public interface DirectAudioController
      *
      * @param channel
      *        The channel to connect to
+     * @param selfDeaf
+     *        Whether the bot will be deafened.
+     * @param selfMute
+     *        Whether the bot will be muted.
      *
      * @see   #reconnect(VoiceChannel)
      */
-    void connect(@Nonnull VoiceChannel channel);
+    void connect(@Nonnull VoiceChannel channel, boolean selfMute, boolean selfDeaf);
 
     /**
      * Requests to terminate the connection to a voice channel.
