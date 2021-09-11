@@ -224,9 +224,6 @@ javadoc.apply {
 
     //jda internals
     exclude("net/dv8tion/jda/internal")
-
-    //voice crypto
-    exclude("com/iwebpp/crypto")
 }
 
 build.apply {
