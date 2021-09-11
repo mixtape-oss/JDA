@@ -18,7 +18,6 @@ package net.dv8tion.jda.api;
 import com.neovisionaries.ws.client.WebSocketFactory;
 import net.dv8tion.jda.annotations.DeprecatedSince;
 import net.dv8tion.jda.annotations.ReplaceWith;
-import net.dv8tion.jda.api.audio.factory.IAudioSendFactory;
 import net.dv8tion.jda.api.entities.Activity;
 import net.dv8tion.jda.api.hooks.IEventManager;
 import net.dv8tion.jda.api.hooks.VoiceDispatchInterceptor;
@@ -80,7 +79,6 @@ public class JDABuilder
     protected WebSocketFactory wsFactory = null;
     protected String token = null;
     protected IEventManager eventManager = null;
-    protected IAudioSendFactory audioSendFactory = null;
     protected JDA.ShardInfo shardInfo = null;
     protected Compression compression = Compression.ZLIB;
     protected Activity activity = null;
@@ -1233,24 +1231,6 @@ public class JDABuilder
     }
 
     /**
-     * Changes the factory used to create {@link net.dv8tion.jda.api.audio.factory.IAudioSendSystem IAudioSendSystem}
-     * objects which handle the sending loop for audio packets.
-     * <br>By default, JDA uses {@link net.dv8tion.jda.api.audio.factory.DefaultSendFactory DefaultSendFactory}.
-     *
-     * @param  factory
-     *         The new {@link net.dv8tion.jda.api.audio.factory.IAudioSendFactory IAudioSendFactory} to be used
-     *         when creating new {@link net.dv8tion.jda.api.audio.factory.IAudioSendSystem} objects.
-     *
-     * @return The JDABuilder instance. Useful for chaining.
-     */
-    @Nonnull
-    public JDABuilder setAudioSendFactory(@Nullable IAudioSendFactory factory)
-    {
-        this.audioSendFactory = factory;
-        return this;
-    }
-
-    /**
      * Sets whether or not we should mark our session as afk
      * <br>This value can be changed at any time in the {@link net.dv8tion.jda.api.managers.Presence Presence} from a JDA instance.
      *
@@ -1855,9 +1835,6 @@ public class JDABuilder
 
         if (eventManager != null)
             jda.setEventManager(eventManager);
-
-        if (audioSendFactory != null)
-            jda.setAudioSendFactory(audioSendFactory);
 
         listeners.forEach(jda::addEventListener);
         jda.setStatus(JDA.Status.INITIALIZED);  //This is already set by JDA internally, but this is to make sure the listeners catch it.

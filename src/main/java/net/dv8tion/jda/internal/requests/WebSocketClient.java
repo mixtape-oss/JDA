@@ -17,16 +17,12 @@
 package net.dv8tion.jda.internal.requests;
 
 import com.neovisionaries.ws.client.*;
-import gnu.trove.iterator.TLongObjectIterator;
 import gnu.trove.map.TLongObjectMap;
 import net.dv8tion.jda.api.*;
-import net.dv8tion.jda.api.audio.hooks.ConnectionListener;
-import net.dv8tion.jda.api.audio.hooks.ConnectionStatus;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.VoiceChannel;
 import net.dv8tion.jda.api.events.*;
 import net.dv8tion.jda.api.exceptions.ParsingException;
-import net.dv8tion.jda.api.managers.AudioManager;
 import net.dv8tion.jda.api.requests.CloseCode;
 import net.dv8tion.jda.api.utils.Compression;
 import net.dv8tion.jda.api.utils.MiscUtil;
@@ -37,14 +33,10 @@ import net.dv8tion.jda.api.utils.data.DataType;
 import net.dv8tion.jda.internal.JDAImpl;
 import net.dv8tion.jda.internal.audio.ConnectionRequest;
 import net.dv8tion.jda.internal.audio.ConnectionStage;
-import net.dv8tion.jda.internal.entities.GuildImpl;
 import net.dv8tion.jda.internal.handle.*;
-import net.dv8tion.jda.internal.managers.AudioManagerImpl;
 import net.dv8tion.jda.internal.managers.PresenceImpl;
 import net.dv8tion.jda.internal.utils.IOUtil;
 import net.dv8tion.jda.internal.utils.JDALogger;
-import net.dv8tion.jda.internal.utils.UnlockHook;
-import net.dv8tion.jda.internal.utils.cache.AbstractCacheView;
 import net.dv8tion.jda.internal.utils.compress.Decompressor;
 import net.dv8tion.jda.internal.utils.compress.ZlibDecompressor;
 import org.slf4j.Logger;
@@ -202,7 +194,6 @@ public class WebSocketClient extends WebSocketAdapter implements WebSocketListen
             }
             else
             {
-                updateAudioManagerReferences();
                 JDAImpl.LOG.info("Finished (Re)Loading!");
                 api.handleEvent(new ReconnectedEvent(api, api.getResponseTotal()));
             }
@@ -758,33 +749,6 @@ public class WebSocketClient extends WebSocketAdapter implements WebSocketListen
         chunkManager.clear();
     }
 
-    protected void updateAudioManagerReferences()
-    {
-        AbstractCacheView<AudioManager> managerView = api.getAudioManagersView();
-        try (UnlockHook hook = managerView.writeLock())
-        {
-            final TLongObjectMap<AudioManager> managerMap = managerView.getMap();
-            if (managerMap.size() > 0)
-                LOG.trace("Updating AudioManager references");
-
-            for (TLongObjectIterator<AudioManager> it = managerMap.iterator(); it.hasNext(); )
-            {
-                it.advance();
-                final long guildId = it.key();
-                final AudioManagerImpl mng = (AudioManagerImpl) it.value();
-
-                GuildImpl guild = (GuildImpl) api.getGuildById(guildId);
-                if (guild == null)
-                {
-                    //We no longer have access to the guild that this audio manager was for. Set the value to null.
-                    queuedAudioConnections.remove(guildId);
-                    mng.closeAudioConnection(ConnectionStatus.DISCONNECTED_REMOVED_DURING_RECONNECT);
-                    it.remove();
-                }
-            }
-        }
-    }
-
     protected String getToken()
     {
         if (api.getAccountType() == AccountType.BOT)
@@ -1141,7 +1105,7 @@ public class WebSocketClient extends WebSocketAdapter implements WebSocketListen
         });
     }
 
-    public void queueAudioConnect(VoiceChannel channel)
+    public void queueAudioConnect(VoiceChannel channel, boolean selfMute, boolean selfDeaf)
     {
         locked("There was an error queueing the audio connect", () ->
         {
@@ -1159,6 +1123,9 @@ public class WebSocketClient extends WebSocketAdapter implements WebSocketListen
                 // if planned to disconnect, we want to reconnect
                 request.setStage(ConnectionStage.RECONNECT);
             }
+
+            request.setSelfDeafened(selfDeaf);
+            request.setSelfMuted(selfMute);
 
             // in all cases, update to this channel
             request.setChannel(channel);
@@ -1268,22 +1235,17 @@ public class WebSocketClient extends WebSocketAdapter implements WebSocketListen
                     return true;
                 }
 
-                ConnectionListener listener = guild.getAudioManager().getConnectionListener();
                 if (audioRequest.getStage() != ConnectionStage.DISCONNECT)
                 {
                     // Check if we can connect to the target channel
                     VoiceChannel channel = guild.getVoiceChannelById(audioRequest.getChannelId());
                     if (channel == null)
                     {
-                        if (listener != null)
-                            listener.onStatusChange(ConnectionStatus.DISCONNECTED_CHANNEL_DELETED);
                         return false;
                     }
 
                     if (!guild.getSelfMember().hasPermission(channel, Permission.VOICE_CONNECT))
                     {
-                        if (listener != null)
-                            listener.onStatusChange(ConnectionStatus.DISCONNECTED_LOST_PERMISSION);
                         return false;
                     }
                 }

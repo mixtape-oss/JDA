@@ -17,15 +17,14 @@
 package net.dv8tion.jda.internal.handle;
 
 import gnu.trove.set.TLongSet;
+import net.dv8tion.jda.api.audio.AudioConnection;
 import net.dv8tion.jda.api.audio.hooks.ConnectionStatus;
 import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.events.guild.GuildLeaveEvent;
 import net.dv8tion.jda.api.events.guild.GuildUnavailableEvent;
-import net.dv8tion.jda.api.managers.AudioManager;
 import net.dv8tion.jda.api.utils.data.DataObject;
 import net.dv8tion.jda.internal.JDAImpl;
 import net.dv8tion.jda.internal.entities.GuildImpl;
-import net.dv8tion.jda.internal.managers.AudioManagerImpl;
 import net.dv8tion.jda.internal.requests.WebSocketClient;
 import net.dv8tion.jda.internal.utils.UnlockHook;
 import net.dv8tion.jda.internal.utils.cache.AbstractCacheView;
@@ -92,10 +91,7 @@ public class GuildDeleteHandler extends SocketHandler
 
         // Clear audio connection
         getJDA().getClient().removeAudioConnection(id);
-        final AbstractCacheView<AudioManager> audioManagerView = getJDA().getAudioManagersView();
-        final AudioManagerImpl manager = (AudioManagerImpl) audioManagerView.get(id); //read-lock access/release
-        if (manager != null)
-            manager.closeAudioConnection(ConnectionStatus.DISCONNECTED_REMOVED_FROM_GUILD); //connection-lock access/release
+        final AbstractCacheView<AudioConnection> audioManagerView = getJDA().getDirectAudioController().getAudioConnectionCache();
         audioManagerView.remove(id); //write-lock access/release
 
         //cleaning up all users that we do not share a guild with anymore

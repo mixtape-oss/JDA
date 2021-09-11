@@ -30,7 +30,7 @@ import javax.annotation.Nullable;
 /**
  * Interceptor used to handle critical voice dispatches.
  * <br>This will make it impossible to connect to voice channels with
- * the built-in {@link net.dv8tion.jda.api.managers.AudioManager AudioManager}.
+ * the built-in {@link net.dv8tion.jda.api.audio.AudioConnection AudioConnection}.
  * It is expected that the user has some other means of establishing voice connections when this is used.
  *
  * @since  4.0.0

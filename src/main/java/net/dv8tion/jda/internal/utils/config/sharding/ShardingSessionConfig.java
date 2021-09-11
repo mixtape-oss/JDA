@@ -17,7 +17,6 @@
 package net.dv8tion.jda.internal.utils.config.sharding;
 
 import com.neovisionaries.ws.client.WebSocketFactory;
-import net.dv8tion.jda.api.audio.factory.IAudioSendFactory;
 import net.dv8tion.jda.api.hooks.VoiceDispatchInterceptor;
 import net.dv8tion.jda.api.utils.SessionController;
 import net.dv8tion.jda.internal.utils.IOUtil;
@@ -33,23 +32,31 @@ import java.util.EnumSet;
 public class ShardingSessionConfig extends SessionConfig
 {
     private final OkHttpClient.Builder builder;
-    private final IAudioSendFactory audioSendFactory;
     private final EnumSet<ShardingConfigFlag> shardingFlags;
 
     public ShardingSessionConfig(
-        @Nullable SessionController sessionController, @Nullable VoiceDispatchInterceptor interceptor,
-        @Nullable OkHttpClient httpClient, @Nullable OkHttpClient.Builder httpClientBuilder,
-        @Nullable WebSocketFactory webSocketFactory, @Nullable IAudioSendFactory audioSendFactory,
-        EnumSet<ConfigFlag> flags, EnumSet<ShardingConfigFlag> shardingFlags,
-        int maxReconnectDelay, int largeThreshold)
+            @Nullable SessionController sessionController,
+            @Nullable VoiceDispatchInterceptor interceptor,
+            @Nullable OkHttpClient httpClient,
+            @Nullable OkHttpClient.Builder httpClientBuilder,
+            @Nullable WebSocketFactory webSocketFactory,
+            EnumSet<ConfigFlag> flags,
+            EnumSet<ShardingConfigFlag> shardingFlags,
+            int maxReconnectDelay,
+            int largeThreshold)
     {
         super(sessionController, httpClient, webSocketFactory, interceptor, flags, maxReconnectDelay, largeThreshold);
         if (httpClient == null)
             this.builder = httpClientBuilder == null ? IOUtil.newHttpClientBuilder() : httpClientBuilder;
         else
             this.builder = null;
-        this.audioSendFactory = audioSendFactory;
         this.shardingFlags = shardingFlags;
+    }
+
+    @Nonnull
+    public static ShardingSessionConfig getDefault()
+    {
+        return new ShardingSessionConfig(null, null, new OkHttpClient(), null, null, ConfigFlag.getDefault(), ShardingConfigFlag.getDefault(), 900, 250);
     }
 
     public SessionConfig toSessionConfig(OkHttpClient client)
@@ -66,17 +73,5 @@ public class ShardingSessionConfig extends SessionConfig
     public OkHttpClient.Builder getHttpBuilder()
     {
         return builder;
-    }
-
-    @Nullable
-    public IAudioSendFactory getAudioSendFactory()
-    {
-        return audioSendFactory;
-    }
-
-    @Nonnull
-    public static ShardingSessionConfig getDefault()
-    {
-        return new ShardingSessionConfig(null, null, new OkHttpClient(), null, null, null, ConfigFlag.getDefault(), ShardingConfigFlag.getDefault(), 900, 250);
     }
 }
